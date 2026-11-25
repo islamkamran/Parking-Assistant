@@ -1,0 +1,143 @@
+# OpenAPI 2.0 (Swagger) definition for a Power Platform custom connector.
+# Custom connectors import OpenAPI 2.0; FastAPI's /openapi.json is 3.1, so this file is kept by hand.
+# Only the 3 agent operations are here. Admin, webhook and checkout endpoints are NOT exposed to the agent.
+#
+# Before importing: replace HOST with your public host name, without https://
+#   e.g. myapp.azurewebsites.net, or a tunnel host while testing locally.
+swagger: "2.0"
+info:
+  title: Parking Assistant API
+  description: Fines lookup and payment links for the Parking Assistant agent.
+  version: "1.0.0"
+host: HOST
+basePath: /
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  api_key:
+    type: apiKey
+    in: header
+    name: x-api-key
+security:
+  - api_key: []
+
+paths:
+  /fines/{plate}:
+    get:
+      operationId: GetUnpaidFines
+      summary: Get unpaid parking fines for a vehicle plate number
+      description: Returns the unpaid fines for a plate. Spaces and lowercase are fixed by the API.
+      parameters:
+        - name: plate
+          in: path
+          required: true
+          type: string
+          description: Vehicle plate number, e.g. A12345
+          x-ms-summary: Plate number
+      responses:
+        "200":
+          description: List of unpaid fines (empty if none)
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Fine"
+        "401":
+          description: Invalid or missing API key
+
+  /payments:
+    post:
+      operationId: CreatePaymentLink
+      summary: Create (or reuse) a secure payment link for one fine
+      description: Use only after the customer confirms which fine to pay. Returns a link that expires.
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/PaymentCreate"
+      responses:
+        "200":
+          description: Payment link
+          schema:
+            $ref: "#/definitions/Payment"
+        "404":
+          description: Fine not found
+        "409":
+          description: Fine already paid
+
+  /payments/{payment_id}:
+    get:
+      operationId: GetPaymentStatus
+      summary: Check whether a payment has been completed
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          type: string
+          description: The payment_id returned by CreatePaymentLink
+          x-ms-summary: Payment ID
+      responses:
+        "200":
+          description: Payment with its current status
+          schema:
+            $ref: "#/definitions/Payment"
+        "404":
+          description: Payment not found
+
+definitions:
+  Fine:
+    type: object
+    properties:
+      fine_id:
+        type: string
+        x-ms-summary: Fine ID
+      plate:
+        type: string
+        x-ms-summary: Plate
+      amount_aed:
+        type: integer
+        x-ms-summary: Amount (AED)
+      reason:
+        type: string
+        x-ms-summary: Reason
+      status:
+        type: string
+        x-ms-summary: Status
+
+  PaymentCreate:
+    type: object
+    required:
+      - fine_id
+    properties:
+      fine_id:
+        type: string
+        description: The fine the customer confirmed, e.g. F-1001
+        x-ms-summary: Fine ID
+
+  Payment:
+    type: object
+    properties:
+      payment_id:
+        type: string
+        x-ms-summary: Payment ID
+      fine_id:
+        type: string
+        x-ms-summary: Fine ID
+      amount_aed:
+        type: integer
+        x-ms-summary: Amount (AED)
+      status:
+        type: string
+        description: pending or paid
+        x-ms-summary: Status
+      pay_url:
+        type: string
+        x-ms-summary: Payment link
+      expires_in_minutes:
+        type: integer
+        x-ms-summary: Expires in (minutes)

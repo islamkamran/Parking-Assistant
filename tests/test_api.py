@@ -20,7 +20,7 @@ def create_link(client, fine_id: str) -> dict:
 
 
 def test_requires_api_key(client):
-    assert client.get("/fines/A12345").status_code == 422                       # header missing
+    assert client.get("/fines/A12345").status_code == 401                       # header missing
     assert client.get("/fines/A12345", headers={"x-api-key": "wrong"}).status_code == 401
 
 

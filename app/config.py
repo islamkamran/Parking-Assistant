@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     db_echo: bool = False                 # True = print every SQL statement (debugging)
 
     api_key: str = "demo-key"             # the agent / Copilot Studio sends this in x-api-key
+    admin_api_key: str = "admin-demo-key" # staff only (create/delete fines); never given to the agent
     webhook_secret: str = "demo-webhook-secret"   # shared with the payment gateway
 
     public_url: str = ""                  # e.g. https://parking-api.azurewebsites.net (used in pay links)
